@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Redirecting...</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f9f9f9;
+            color: #333;
+        }
+        .message {
+            font-size: 1.2em;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="message">
+        <p>Redirecting you, please wait...</p>
+    </div>
+
+    <script>
+        // --- Customize this section ---
+
+        // Add all your movie links here in the order you want them to be used.
+        const urls = [
+            "https://link-to-your-movie-server-1.com/movie-name",
+            "https://link-to-your-movie-server-2.com/movie-name",
+            "https://link-to-your-movie-server-3.com/movie-name",
+        ];
+
+        // --- No need to change the code below this ---
+
+        // A unique key to store the next link's index in the browser's storage.
+        const storageKey = "movieLinkIndex";
+
+        // 1. Get the stored index from localStorage. If it's the first time, it will be 0.
+        let currentIndex = parseInt(localStorage.getItem(storageKey)) || 0;
+
+        // 2. Get the URL for the current index.
+        const currentUrl = urls[currentIndex];
+
+        // 3. Calculate the index for the NEXT click.
+        // The modulo (%) operator makes it loop back to 0 after the last link.
+        const nextIndex = (currentIndex + 1) % urls.length;
+
+        // 4. Save the next index back to localStorage for the next visitor.
+        localStorage.setItem(storageKey, nextIndex);
+
+        // 5. Redirect the user to the selected URL.
+        window.location.href = currentUrl;
+    </script>
+
+</body>
+</html>
