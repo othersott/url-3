@@ -1,0 +1,83 @@
+name: Sync Files to Second Repository (Template File)
+
+on:
+  push:
+    branches:
+      - main  # যদি আপনার ব্রাঞ্চের নাম 'master' হয় তাহলে এখানে master লিখুন
+
+jobs:
+  sync-files:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout first repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+      
+      - name: Get changed files
+        id: changed-files
+        run: |
+          if [ "${{ github.event_name }}" == "push" ]; then
+            git diff --name-only --diff-filter=ACR HEAD^..HEAD > changed_files.txt
+          else
+            git ls-tree -r --name-only HEAD > changed_files.txt
+          fi
+          
+          echo "Changed files:"
+          cat changed_files.txt
+      
+      - name: Checkout second repository
+        uses: actions/checkout@v3
+        with:
+          repository: othersott/redirect-3 # আপনার দ্বিতীয় রিপোজিটরির নাম
+          token: ${{ secrets.SECOND_REPO_TOKEN }}
+          path: second-repo
+      
+      - name: Create files with template content in second repository
+        run: |
+          cd second-repo
+          
+          # Template file এর path (প্রথম রিপোজিটরিতে)
+          TEMPLATE_FILE="../.template/default-template.html"
+          
+          # Template file আছে কিনা চেক করা
+          if [ ! -f "$TEMPLATE_FILE" ]; then
+            echo "Warning: Template file not found at $TEMPLATE_FILE"
+            echo "Creating empty files instead"
+            TEMPLATE_FILE=""
+          fi
+          
+          while IFS= read -r file; do
+            if [ -n "$file" ]; then
+              echo "Processing: $file"
+              
+              # ফাইলের ডিরেক্টরি তৈরি করা
+              mkdir -p "$(dirname "$file")"
+              
+              # Template থেকে কোড কপি করা
+              if [ -n "$TEMPLATE_FILE" ] && [ -f "$TEMPLATE_FILE" ]; then
+                cp "$TEMPLATE_FILE" "$file"
+                echo "Created file with template: $file"
+              else
+                touch "$file"
+                echo "Created empty file: $file"
+              fi
+            fi
+          done < ../changed_files.txt
+      
+      - name: Commit and push to second repository
+        run: |
+          cd second-repo
+          git config user.name "GitHub Action"
+          git config user.email "action@github.com"
+          
+          git add .
+          
+          if [ -n "$(git status --porcelain)" ]; then
+            git commit -m "Synced files with template from othersott/url-3"
+            git push
+            echo "Changes pushed successfully!"
+          else
+            echo "No changes to commit"
+          fi
