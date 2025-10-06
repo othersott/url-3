@@ -1,0 +1,94 @@
+name: Sync to url-2 and url-3
+
+on:
+  push:
+    branches:
+      - main  # অথবা master, আপনার ব্রাঞ্চ অনুযায়ী
+
+jobs:
+  sync-to-multiple-repos:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout url-1 repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+      
+      - name: Get changed files
+        id: changed-files
+        run: |
+          if [ "${{ github.event_name }}" == "push" ]; then
+            git diff --name-only --diff-filter=ACMR HEAD^..HEAD > changed_files.txt
+          else
+            git ls-tree -r --name-only HEAD > changed_files.txt
+          fi
+          
+          echo "=== Changed files ==="
+          cat changed_files.txt
+      
+      # url-2 তে sync করা
+      - name: Checkout url-2 repository
+        uses: actions/checkout@v3
+        with:
+          repository: othersott/url-2
+          token: ${{ secrets.SYNC_TOKEN }}
+          path: url-2-repo
+      
+      - name: Copy files to url-2
+        run: |
+          echo "Syncing to url-2..."
+          while IFS= read -r file; do
+            if [ -n "$file" ] && [ -f "$file" ]; then
+              echo "Copying: $file"
+              mkdir -p "url-2-repo/$(dirname "$file")"
+              cp "$file" "url-2-repo/$file"
+            fi
+          done < changed_files.txt
+      
+      - name: Commit and push to url-2
+        run: |
+          cd url-2-repo
+          git config user.name "GitHub Action"
+          git config user.email "action@github.com"
+          git add .
+          if [ -n "$(git status --porcelain)" ]; then
+            git commit -m "Synced from url-1: $(date '+%Y-%m-%d %H:%M:%S')"
+            git push
+            echo "✅ Successfully synced to url-2"
+          else
+            echo "ℹ️ No changes to commit in url-2"
+          fi
+      
+      # url-3 তে sync করা
+      - name: Checkout url-3 repository
+        uses: actions/checkout@v3
+        with:
+          repository: othersott/url-3
+          token: ${{ secrets.SYNC_TOKEN }}
+          path: url-3-repo
+      
+      - name: Copy files to url-3
+        run: |
+          echo "Syncing to url-3..."
+          while IFS= read -r file; do
+            if [ -n "$file" ] && [ -f "$file" ]; then
+              echo "Copying: $file"
+              mkdir -p "url-3-repo/$(dirname "$file")"
+              cp "$file" "url-3-repo/$file"
+            fi
+          done < changed_files.txt
+      
+      - name: Commit and push to url-3
+        run: |
+          cd url-3-repo
+          git config user.name "GitHub Action"
+          git config user.email "action@github.com"
+          git add .
+          if [ -n "$(git status --porcelain)" ]; then
+            git commit -m "Synced from url-1: $(date '+%Y-%m-%d %H:%M:%S')"
+            git push
+            echo "✅ Successfully synced to url-3"
+          else
+            echo "ℹ️ No changes to commit in url-3"
+          fi
